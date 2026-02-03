@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -25,6 +26,7 @@ export default function AuthScreen() {
   // 1. Theme Hook: Automatically detects if phone is Dark or Light
   const scheme = useColorScheme();
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
+  const router = useRouter();
 
   // 2. State
   const [isRegistering, setIsRegistering] = useState(false); // Are we creating a new vault?
@@ -35,6 +37,8 @@ export default function AuthScreen() {
   useEffect(() => {
     checkVaultStatus();
   }, []);
+
+  //
 
   const checkVaultStatus = async () => {
     const salt = await getSecureItem("vault_salt");
@@ -60,11 +64,14 @@ export default function AuthScreen() {
     const testValue = encryptData("VALID_PASSWORD", key);
 
     if (testValue) {
-      // D. Save sensitive data to SecureStore
       await saveSecureItem("vault_salt", salt);
       await saveSecureItem("vault_check", testValue);
-      Alert.alert("Success", "Your secure vault is ready!");
-      setIsRegistering(false); // Now switch to Login mode
+
+      Alert.alert(
+        "Success",
+        "Vault created! Please log in to confirm your password.",
+      );
+      setIsRegistering(false); // Switch to "Login" mode automatically
     }
     setIsLoading(false);
   };
@@ -87,8 +94,8 @@ export default function AuthScreen() {
     const decrypted = decryptData(checkValue, key);
 
     if (decrypted === "VALID_PASSWORD") {
-      Alert.alert("Access Granted", "Welcome back!");
-      // TODO: Navigate to Main App
+      // Navigate to the Vault (replacing the login screen so they can't go back)
+      router.replace("/(tabs)");
     } else {
       Alert.alert("Access Denied", "Wrong password.");
     }
