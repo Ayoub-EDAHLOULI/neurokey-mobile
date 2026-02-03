@@ -1,35 +1,33 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs } from "expo-router";
+import React from "react";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useColorScheme } from "react-native";
+import { Colors } from "../../src/theme"; // <--- POINTING TO YOUR NEW THEME
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme === "dark" ? "dark" : "light"];
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: theme.primary,
+        tabBarStyle: {
+          backgroundColor: theme.card,
+          borderTopColor: theme.border,
+        },
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+      }}
+    >
+      {/* Tab 1: The Password Vault */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Passwords",
         }}
       />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
+
+      {/* You can add 'generator.tsx' or 'settings.tsx' here later */}
     </Tabs>
   );
 }
