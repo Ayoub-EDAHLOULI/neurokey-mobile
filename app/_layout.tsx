@@ -1,5 +1,3 @@
-import "react-native-get-random-values";
-
 import {
   DarkTheme,
   DefaultTheme,
@@ -7,29 +5,37 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import * as SystemUI from "expo-system-ui"; // 👈 Import SystemUI
+import { useEffect } from "react"; // 👈 Import useEffect
 import { useColorScheme } from "react-native";
+import "react-native-get-random-values";
 import "react-native-reanimated";
 
-// 👇 Import your Colors object so we can grab the exact hex codes
 import { VaultProvider } from "../src/context/VaultContext";
 import { Colors } from "../src/theme";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
-  // 👇 Get the active theme colors
+  // Get the active theme colors
   const theme = Colors[colorScheme === "dark" ? "dark" : "light"];
+
+  // 👇 DYNAMICALLY SET ROOT BACKGROUND
+  // This paints the native "canvas" behind the app to match your theme.
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(theme.background);
+  }, [colorScheme, theme.background]);
 
   return (
     <VaultProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack
-          // 👇 THIS IS THE FIX:
           screenOptions={{
-            // 1. Force the hidden background to match your theme
+            // Force the navigation container background
             contentStyle: { backgroundColor: theme.background },
-            // 2. Ensure the header (if visible) also matches
             headerStyle: { backgroundColor: theme.background },
+            // Ensure headers in modals don't flash
+            presentation: "card",
           }}
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
