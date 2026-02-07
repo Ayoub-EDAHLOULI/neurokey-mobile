@@ -1,4 +1,3 @@
-// 👇 1. Essential Crypto Polyfill (Must be first)
 import "react-native-get-random-values";
 
 import {
@@ -11,28 +10,35 @@ import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "react-native";
 import "react-native-reanimated";
 
-// 👇 2. Import our new Data Provider
+// 👇 Import your Colors object so we can grab the exact hex codes
 import { VaultProvider } from "../src/context/VaultContext";
+import { Colors } from "../src/theme";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
+  // 👇 Get the active theme colors
+  const theme = Colors[colorScheme === "dark" ? "dark" : "light"];
+
   return (
-    // 👇 3. Wrap everything in the Provider
     <VaultProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          {/* Login Screen (First Screen) */}
+        <Stack
+          // 👇 THIS IS THE FIX:
+          screenOptions={{
+            // 1. Force the hidden background to match your theme
+            contentStyle: { backgroundColor: theme.background },
+            // 2. Ensure the header (if visible) also matches
+            headerStyle: { backgroundColor: theme.background },
+          }}
+        >
           <Stack.Screen name="index" options={{ headerShown: false }} />
-
-          {/* Main App (Tabs) */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-          {/* 👇 4. Dynamic Screens (Modals) */}
           <Stack.Screen
             name="add"
             options={{
-              presentation: "modal", // Slides up like a card
+              presentation: "modal",
               headerShown: false,
             }}
           />
@@ -51,7 +57,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
-        <StatusBar style="auto" />
+        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       </ThemeProvider>
     </VaultProvider>
   );
