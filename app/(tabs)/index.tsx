@@ -13,71 +13,10 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../src/theme";
-
-// --- TYPE DEFINITION ---
-// This is what a single password entry looks like
-interface PasswordEntry {
-  id: string;
-  serviceName: string; // e.g., "Amazon"
-  email: string;
-  icon?: string; // e.g., "logo-amazon"
-  color?: string; // For the placeholder circle
-}
-
-// --- DUMMY DATA (For Testing) ---
-const MOCK_DATA: PasswordEntry[] = [
-  {
-    id: "1",
-    serviceName: "Amazon",
-    email: "jane.smith@email.com",
-    icon: "logo-amazon",
-    color: "#FF9900",
-  },
-  {
-    id: "2",
-    serviceName: "Apple ID",
-    email: "jane.smith@work.com",
-    icon: "logo-apple",
-    color: "#000000",
-  },
-  {
-    id: "3",
-    serviceName: "Google",
-    email: "jane.doe@gmail.com",
-    icon: "logo-google",
-    color: "#4285F4",
-  },
-  {
-    id: "4",
-    serviceName: "Facebook",
-    email: "jane.social@fb.com",
-    icon: "logo-facebook",
-    color: "#1877F2",
-  },
-  {
-    id: "5",
-    serviceName: "Netflix",
-    email: "jane.movies@email.com",
-    color: "#E50914",
-  }, // No icon, just color
-  { id: "6", serviceName: "Airbnb", email: "+1 555 0199", color: "#FF5A5F" },
-  {
-    id: "7",
-    serviceName: "Spotify",
-    email: "jane.music@email.com",
-    color: "#1DB954",
-  },
-  {
-    id: "8",
-    serviceName: "Twitter / X",
-    email: "@janedoe",
-    icon: "logo-twitter",
-    color: "#1DA1F2",
-  },
-];
+// 👇 Import the Hook
+import { useVault } from "../../src/context/VaultContext";
 
 // --- COMPONENT: BRAND ICON ---
-// Renders a logo if we have it, or a colored circle with initials if we don't
 const BrandIcon = ({
   serviceName,
   icon,
@@ -89,12 +28,25 @@ const BrandIcon = ({
   color?: string;
   theme: any;
 }) => {
-  if (icon) {
-    // Known Brand Logo
+  // If we have a specific logo (like 'logo-google'), render it
+  if (icon && icon.startsWith("logo-")) {
     return (
       <View style={[styles.iconContainer, { backgroundColor: theme.card }]}>
-        {/* Using Ionicons logos. Note: Not all brands exist in Ionicons, but major ones do */}
         <Ionicons name={icon as any} size={28} color={color || theme.text} />
+      </View>
+    );
+  }
+
+  // If it's a generic icon (like 'card' or 'mail'), render it with color
+  if (icon) {
+    return (
+      <View
+        style={[
+          styles.iconContainer,
+          { backgroundColor: color || theme.primary },
+        ]}
+      >
+        <Ionicons name={icon as any} size={24} color="#FFF" />
       </View>
     );
   }
@@ -119,10 +71,13 @@ export default function VaultScreen() {
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
   const insets = useSafeAreaInsets();
 
+  // 👇 Get Dynamic Data from Context
+  const { passwords } = useVault();
+
   const [searchQuery, setSearchQuery] = useState("");
 
   // Filter Logic
-  const filteredData = MOCK_DATA.filter(
+  const filteredData = passwords.filter(
     (item) =>
       item.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.email.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -140,13 +95,13 @@ export default function VaultScreen() {
       />
 
       {/* 1. HEADER */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: 20 }]}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>
           Passwords
         </Text>
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: theme.inputBg }]}
-          onPress={() => router.push("/add")} // We will create this route next
+          onPress={() => router.push("/add")}
         >
           <Ionicons name="add" size={24} color={theme.primary} />
         </TouchableOpacity>
@@ -176,7 +131,7 @@ export default function VaultScreen() {
       <FlatList
         data={filteredData}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 100 }} // Space for bottom tabs
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -186,7 +141,14 @@ export default function VaultScreen() {
               // Navigate to Detail View
               router.push({
                 pathname: "/detail",
-                params: { title: item.serviceName, email: item.email },
+                // Pass all params needed for display
+                params: {
+                  title: item.serviceName,
+                  email: item.email,
+                  password: item.password, // Warning: In a real app, don't pass raw password via params, fetch by ID
+                  icon: item.icon,
+                  color: item.color,
+                },
               });
             }}
           >
@@ -218,12 +180,19 @@ export default function VaultScreen() {
             </TouchableOpacity>
           </TouchableOpacity>
         )}
-        // Empty State (No results)
+        // Empty State
         ListEmptyComponent={
           <View style={{ alignItems: "center", marginTop: 50 }}>
-            <Ionicons name="search-outline" size={50} color={theme.subText} />
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={50}
+              color={theme.subText}
+            />
             <Text style={{ color: theme.subText, marginTop: 10 }}>
-              No passwords found
+              Your vault is empty.
+            </Text>
+            <Text style={{ color: theme.subText, fontSize: 12 }}>
+              Tap + to add a password.
             </Text>
           </View>
         }
@@ -261,7 +230,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 20,
     paddingHorizontal: 12,
-    height: 44, // Standard iOS search bar height
+    height: 44,
     borderRadius: 10,
   },
   searchInput: {
@@ -274,12 +243,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 20,
-    marginBottom: 1, // Tiny separator line effect
+    marginBottom: 1,
   },
   iconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 12, // Squircle shape
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,

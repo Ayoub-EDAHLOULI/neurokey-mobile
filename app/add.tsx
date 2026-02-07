@@ -14,6 +14,10 @@ import {
   View,
 } from "react-native";
 import { Colors } from "../src/theme";
+// 👇 Import the Hook
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useVault } from "../src/context/VaultContext";
+
 // --- CONFIG: AVAILABLE ICONS ---
 const BRAND_ICONS = [
   { id: "amazon", name: "Amazon", icon: "logo-amazon", color: "#FF9900" },
@@ -33,8 +37,8 @@ const BRAND_ICONS = [
     color: "#1DA1F2",
   },
   { id: "linkedin", name: "LinkedIn", icon: "logo-linkedin", color: "#0077B5" },
-  { id: "bank", name: "Bank", icon: "card", color: "#34C759" }, // Generic Bank
-  { id: "crypto", name: "Crypto", icon: "wallet", color: "#F7931A" }, // Generic Crypto
+  { id: "bank", name: "Bank", icon: "card", color: "#34C759" },
+  { id: "crypto", name: "Crypto", icon: "wallet", color: "#F7931A" },
   { id: "mail", name: "Email", icon: "mail", color: "#5856D6" },
   { id: "other", name: "Other", icon: "key", color: "#8E8E93" },
 ];
@@ -43,6 +47,10 @@ export default function AddPasswordScreen() {
   const router = useRouter();
   const scheme = useColorScheme();
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
+  const insets = useSafeAreaInsets(); // Fix header jumping
+
+  // 👇 Get Action from Context
+  const { addPassword } = useVault();
 
   // --- STATE ---
   const [serviceName, setServiceName] = useState("");
@@ -53,7 +61,7 @@ export default function AddPasswordScreen() {
 
   const [selectedIcon, setSelectedIcon] = useState(BRAND_ICONS[0]);
   const [showPassword, setShowPassword] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0); // 0 to 4
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
   // --- HELPERS ---
 
@@ -68,7 +76,7 @@ export default function AddPasswordScreen() {
     setPassword(autoPass);
   };
 
-  // 2. Strength Calculator (Simple Logic)
+  // 2. Strength Calculator
   useEffect(() => {
     let score = 0;
     if (password.length > 8) score++;
@@ -81,9 +89,9 @@ export default function AddPasswordScreen() {
   // 3. Get Strength Color
   const getStrengthColor = () => {
     if (password.length === 0) return theme.border;
-    if (passwordStrength <= 1) return theme.strengthWeak; // Red
-    if (passwordStrength === 2) return theme.strengthMedium; // Orange
-    return theme.strengthStrong; // Green
+    if (passwordStrength <= 1) return theme.strengthWeak;
+    if (passwordStrength === 2) return theme.strengthMedium;
+    return theme.strengthStrong;
   };
 
   const handleSave = () => {
@@ -91,13 +99,18 @@ export default function AddPasswordScreen() {
       Alert.alert("Missing Info", "Please add a name and password.");
       return;
     }
-    // TODO: Actually save to encrypted storage
-    console.log("Saving:", {
+
+    // 👇 Save to Context (Dynamic!)
+    addPassword({
       serviceName,
       email,
       password,
-      icon: selectedIcon.id,
+      url,
+      notes,
+      icon: selectedIcon.icon,
+      color: selectedIcon.color,
     });
+
     router.back();
   };
 
@@ -106,8 +119,8 @@ export default function AddPasswordScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      {/* HEADER */}
-      <View style={styles.header}>
+      {/* HEADER (Fixed Safe Area) */}
+      <View style={[styles.header, { paddingTop: insets.top + 30 }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={{ color: theme.primary, fontSize: 17 }}>Cancel</Text>
         </TouchableOpacity>
@@ -358,12 +371,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 60, // Safe area
     paddingBottom: 16,
+    // paddingTop set dynamically via insets
   },
   headerTitle: { fontSize: 17, fontWeight: "600" },
   sectionTitle: { fontSize: 13, marginBottom: 8, fontWeight: "500" },
-
   iconCircle: {
     width: 60,
     height: 60,
@@ -371,7 +383,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   formGroup: {
     borderRadius: 12,
     overflow: "hidden",
@@ -386,7 +397,6 @@ const styles = StyleSheet.create({
   },
   label: { width: 80, fontSize: 16, fontWeight: "500" },
   input: { flex: 1, fontSize: 16 },
-
   actionRow: {
     flexDirection: "row",
     alignItems: "center",

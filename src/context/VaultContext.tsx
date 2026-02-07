@@ -21,6 +21,7 @@ interface VaultContextType {
   unlockVault: (key: string) => void; // We will use this later for encryption
   addPassword: (item: Omit<PasswordItem, "id" | "created_at">) => void;
   deletePassword: (id: string) => void;
+  updatePassword: (id: string, updates: Partial<PasswordItem>) => void;
 }
 
 // 3. Create the Context
@@ -30,11 +31,10 @@ const VaultContext = createContext<VaultContextType>({} as VaultContextType);
 export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   const [passwords, setPasswords] = useState<PasswordItem[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [masterKey, setMasterKey] = useState<string | null>(null);
 
   // SIMULATE: Unlock the vault (We will connect real decryption later)
   const unlockVault = (key: string) => {
-    setMasterKey(key);
+    // TODO: Store and use the key for decryption
     setIsAuthenticated(true);
     // TODO: Load encrypted file from disk here
   };
@@ -56,6 +56,13 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     setPasswords((prev) => prev.filter((item) => item.id !== id));
   };
 
+  // ACTION: Update Password
+  const updatePassword = (id: string, updates: Partial<PasswordItem>) => {
+    setPasswords((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+    );
+  };
+
   return (
     <VaultContext.Provider
       value={{
@@ -64,6 +71,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
         unlockVault,
         addPassword,
         deletePassword,
+        updatePassword,
       }}
     >
       {children}
