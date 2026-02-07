@@ -60,10 +60,20 @@ export default function CardDetailScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() =>
-            router.push({ pathname: "/add-card", params: { ...item } })
+            router.push({
+              pathname: "/edit-card",
+              params: {
+                id: item.id,
+                cardHolder: item.cardHolder,
+                cardNumber: item.cardNumber,
+                expiry: item.expiry,
+                cvv: item.cvv,
+                cardType: item.cardType,
+                notes: item.notes,
+              },
+            })
           }
         >
-          {/* Note: You might want to create a separate /edit-card page later */}
           <Text
             style={{ color: theme.primary, fontSize: 17, fontWeight: "600" }}
           >
