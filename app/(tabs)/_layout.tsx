@@ -2,15 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
 import { useColorScheme } from "react-native";
-// 1. Import this hook to get the safe area dimensions
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../src/theme";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme === "dark" ? "dark" : "light"];
-
-  // 2. Get the insets (top, bottom, left, right safe zones)
   const insets = useSafeAreaInsets();
 
   return (
@@ -22,17 +19,10 @@ export default function TabLayout() {
           backgroundColor: theme.card,
           borderTopColor: theme.border,
           borderTopWidth: 1,
-
-          // 3. DYNAMIC HEIGHT:
-          // Base height (60) + The size of the bottom buttons/home bar
           height: 60 + insets.bottom,
-
-          // 4. DYNAMIC PADDING:
-          // Push the icons up so they aren't covered by the buttons
           paddingBottom: insets.bottom,
-          paddingTop: 10, // Center the icons vertically
-
-          elevation: 0, // Remove ugly shadow on Android
+          paddingTop: 10,
+          elevation: 0,
         },
         headerShown: false,
       }}
@@ -51,13 +41,14 @@ export default function TabLayout() {
         }}
       />
 
+      {/* 👇 CHANGED: From 'notes' to 'wallet' */}
       <Tabs.Screen
-        name="notes"
+        name="wallet"
         options={{
-          title: "Secure Notes",
+          title: "Wallet",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? "document-text" : "document-text-outline"}
+              name={focused ? "card" : "card-outline"}
               size={24}
               color={color}
             />
