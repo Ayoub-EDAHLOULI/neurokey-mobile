@@ -97,7 +97,7 @@ export default function GeneratorScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: theme.background, paddingTop: insets.top },
+        { backgroundColor: theme.background, paddingTop: insets.top + 10 },
       ]}
     >
       {/* HEADER */}
