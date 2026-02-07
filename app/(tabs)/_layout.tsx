@@ -1,40 +1,47 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform, useColorScheme } from "react-native";
+import { useColorScheme } from "react-native";
+// 1. Import this hook to get the safe area dimensions
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../src/theme";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme === "dark" ? "dark" : "light"];
 
+  // 2. Get the insets (top, bottom, left, right safe zones)
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
-        // Active tab color (e.g., Blue)
         tabBarActiveTintColor: theme.primary,
-        // Inactive tab color (e.g., Gray)
         tabBarInactiveTintColor: theme.subText,
-        // Style the tab bar background and border
         tabBarStyle: {
           backgroundColor: theme.card,
           borderTopColor: theme.border,
-          // Add some padding on Android for a better look
-          ...(Platform.OS === "android"
-            ? { elevation: 0, height: 60, paddingBottom: 10 }
-            : {}),
+          borderTopWidth: 1,
+
+          // 3. DYNAMIC HEIGHT:
+          // Base height (60) + The size of the bottom buttons/home bar
+          height: 60 + insets.bottom,
+
+          // 4. DYNAMIC PADDING:
+          // Push the icons up so they aren't covered by the buttons
+          paddingBottom: insets.bottom,
+          paddingTop: 10, // Center the icons vertically
+
+          elevation: 0, // Remove ugly shadow on Android
         },
-        // Hide the default header; each screen will have its own custom header
         headerShown: false,
       }}
     >
-      {/* Tab 1: Passwords */}
       <Tabs.Screen
         name="index"
         options={{
           title: "Passwords",
           tabBarIcon: ({ color, focused }) => (
-            // Use a filled icon when focused, outline when not
             <Ionicons
               name={focused ? "key" : "key-outline"}
               size={24}
@@ -44,7 +51,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 2: Secure Notes */}
       <Tabs.Screen
         name="notes"
         options={{
@@ -59,7 +65,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 3: Generator */}
       <Tabs.Screen
         name="generator"
         options={{
@@ -74,7 +79,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 4: Settings */}
       <Tabs.Screen
         name="settings"
         options={{
