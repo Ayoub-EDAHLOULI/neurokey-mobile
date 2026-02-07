@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   FlatList,
@@ -14,6 +15,7 @@ import { useVault } from "../../src/context/VaultContext";
 import { Colors } from "../../src/theme";
 
 export default function WalletScreen() {
+  const router = useRouter();
   const scheme = useColorScheme();
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
   const insets = useSafeAreaInsets();
@@ -34,6 +36,7 @@ export default function WalletScreen() {
         <Text style={[styles.headerTitle, { color: theme.text }]}>Wallet</Text>
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: theme.inputBg }]}
+          onPress={() => router.push("/add-card")}
         >
           <Ionicons name="add" size={24} color={theme.primary} />
         </TouchableOpacity>

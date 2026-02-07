@@ -5,8 +5,8 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import * as SystemUI from "expo-system-ui"; // 👈 Import SystemUI
-import { useEffect } from "react"; // 👈 Import useEffect
+import * as SystemUI from "expo-system-ui";
+import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 import "react-native-get-random-values";
 import "react-native-reanimated";
@@ -57,6 +57,13 @@ export default function RootLayout() {
           />
           <Stack.Screen
             name="edit"
+            options={{
+              presentation: "modal",
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="add-card"
             options={{
               presentation: "modal",
               headerShown: false,

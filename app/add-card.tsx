@@ -87,7 +87,7 @@ export default function AddCardScreen() {
       style={[styles.container, { backgroundColor: theme.background }]}
     >
       {/* HEADER */}
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 30 }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={{ color: theme.primary, fontSize: 17 }}>Cancel</Text>
         </TouchableOpacity>

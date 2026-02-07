@@ -100,7 +100,6 @@ export default function AddPasswordScreen() {
       return;
     }
 
-    // 👇 Save to Context (Dynamic!)
     addVaultItem({
       type: "password",
       name: serviceName,
