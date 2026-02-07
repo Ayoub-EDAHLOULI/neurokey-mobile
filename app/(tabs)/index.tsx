@@ -69,14 +69,14 @@ export default function VaultScreen() {
   const insets = useSafeAreaInsets();
 
   // 👇 Get Dynamic Data from Context
-  const { passwords } = useVault();
+  const { items } = useVault();
 
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredData = passwords.filter(
+  const filteredData = items.filter(
     (item) =>
-      item.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.email.toLowerCase().includes(searchQuery.toLowerCase()),
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.email?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -136,7 +136,7 @@ export default function VaultScreen() {
                 pathname: "/detail",
                 params: {
                   id: item.id, // 👈 THIS WAS MISSING! CRITICAL!
-                  title: item.serviceName,
+                  title: item.name,
                   email: item.email,
                   password: item.password,
                   icon: item.icon,
@@ -146,7 +146,7 @@ export default function VaultScreen() {
             }}
           >
             <BrandIcon
-              serviceName={item.serviceName}
+              serviceName={item.name}
               icon={item.icon}
               color={item.color}
               theme={theme}
@@ -154,7 +154,7 @@ export default function VaultScreen() {
 
             <View style={styles.textContainer}>
               <Text style={[styles.itemTitle, { color: theme.text }]}>
-                {item.serviceName}
+                {item.name}
               </Text>
               <Text style={[styles.itemSubtitle, { color: theme.subText }]}>
                 {item.email}

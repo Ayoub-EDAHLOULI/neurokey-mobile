@@ -1,13 +1,26 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"; // 👈 The key to stability
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-export interface PasswordItem {
+// 👇 UPGRADE: Support multiple types
+export type VaultItemType = "password" | "card" | "note";
+
+export interface VaultItem {
   id: string;
-  serviceName: string;
-  email: string;
-  password: string;
+  type: VaultItemType; // 👈 New field
+  // Common fields
+  name: string; // Renamed from serviceName to be generic
+  // Password fields
+  email?: string;
+  password?: string;
   url?: string;
+  // Card fields (New)
+  cardNumber?: string;
+  cardHolder?: string;
+  expiry?: string;
+  cvv?: string;
+  cardType?: "visa" | "mastercard" | "amex";
+  // Common
   notes?: string;
   icon?: string;
   color?: string;
@@ -15,88 +28,60 @@ export interface PasswordItem {
 }
 
 interface VaultContextType {
-  passwords: PasswordItem[];
-  isLoading: boolean; // 👈 New: Helps us know when data is ready
-  isAuthenticated: boolean;
-  unlockVault: (key: string) => void;
-  addPassword: (item: Omit<PasswordItem, "id" | "created_at">) => void;
-  deletePassword: (id: string) => void;
-  updatePassword: (id: string, updates: Partial<PasswordItem>) => void;
+  items: VaultItem[]; // Renamed from passwords
+  isLoading: boolean;
+  addVaultItem: (item: Omit<VaultItem, "id" | "created_at">) => void;
+  deleteVaultItem: (id: string) => void;
+  updateVaultItem: (id: string, updates: Partial<VaultItem>) => void;
 }
 
 const VaultContext = createContext<VaultContextType>({} as VaultContextType);
-
-const STORAGE_KEY = "@neurokey_vault_v1";
+const STORAGE_KEY = "@neurokey_vault_v2"; // Changed key to v2 to avoid conflicts
 
 export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
-  const [passwords, setPasswords] = useState<PasswordItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // Start loading
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [items, setItems] = useState<VaultItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 1. LOAD DATA ON STARTUP
   useEffect(() => {
     const loadData = async () => {
       try {
         const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
-        if (jsonValue != null) {
-          const loadedData = JSON.parse(jsonValue);
-          setPasswords(loadedData);
-          console.log("✅ Vault loaded:", loadedData.length, "items");
-        } else {
-          console.log("ℹ️ Starting fresh vault (no data found)");
-        }
+        if (jsonValue != null) setItems(JSON.parse(jsonValue));
       } catch (e) {
-        console.error("❌ Failed to load vault:", e);
+        console.error("Failed to load", e);
       } finally {
-        setIsLoading(false); // Stop loading whether it worked or failed
+        setIsLoading(false);
       }
     };
     loadData();
   }, []);
 
-  // 2. HELPER TO SAVE DATA
-  const saveVault = async (newData: PasswordItem[]) => {
-    try {
-      setPasswords(newData); // Update UI immediately (Optimistic UI)
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newData)); // Save to Disk
-      console.log("💾 Saved to disk.");
-    } catch (e) {
-      console.error("❌ Failed to save vault:", e);
-    }
+  const saveVault = async (newData: VaultItem[]) => {
+    setItems(newData);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
   };
 
-  const unlockVault = (key: string) => {
-    setIsAuthenticated(true);
-  };
-
-  // CRUD OPERATIONS
-  const addPassword = (newItem: Omit<PasswordItem, "id" | "created_at">) => {
+  const addVaultItem = (newItem: Omit<VaultItem, "id" | "created_at">) => {
     const entry = { id: uuidv4(), created_at: Date.now(), ...newItem };
-    saveVault([entry, ...passwords]);
+    saveVault([entry as VaultItem, ...items]);
   };
 
-  const deletePassword = (id: string) => {
-    saveVault(passwords.filter((item) => item.id !== id));
+  const deleteVaultItem = (id: string) => {
+    saveVault(items.filter((i) => i.id !== id));
   };
 
-  const updatePassword = (id: string, updates: Partial<PasswordItem>) => {
-    saveVault(
-      passwords.map((item) =>
-        item.id === id ? { ...item, ...updates } : item,
-      ),
-    );
+  const updateVaultItem = (id: string, updates: Partial<VaultItem>) => {
+    saveVault(items.map((i) => (i.id === id ? { ...i, ...updates } : i)));
   };
 
   return (
     <VaultContext.Provider
       value={{
-        passwords,
+        items,
         isLoading,
-        isAuthenticated,
-        unlockVault,
-        addPassword,
-        deletePassword,
-        updatePassword,
+        addVaultItem,
+        deleteVaultItem,
+        updateVaultItem,
       }}
     >
       {children}

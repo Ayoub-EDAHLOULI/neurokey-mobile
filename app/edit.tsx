@@ -49,7 +49,7 @@ export default function EditPasswordScreen() {
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
   const insets = useSafeAreaInsets();
 
-  const { updatePassword } = useVault();
+  const { updateVaultItem } = useVault();
 
   // 1. LOAD INITIAL DATA from params
   const [serviceName, setServiceName] = useState(
@@ -73,8 +73,9 @@ export default function EditPasswordScreen() {
     }
 
     // 2. CALL UPDATE
-    updatePassword(params.id as string, {
-      serviceName,
+    updateVaultItem(params.id as string, {
+      type: "password",
+      name: serviceName,
       email,
       password,
       url,

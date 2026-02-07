@@ -50,7 +50,7 @@ export default function AddPasswordScreen() {
   const insets = useSafeAreaInsets(); // Fix header jumping
 
   // 👇 Get Action from Context
-  const { addPassword } = useVault();
+  const { addVaultItem } = useVault();
 
   // --- STATE ---
   const [serviceName, setServiceName] = useState("");
@@ -101,8 +101,9 @@ export default function AddPasswordScreen() {
     }
 
     // 👇 Save to Context (Dynamic!)
-    addPassword({
-      serviceName,
+    addVaultItem({
+      type: "password",
+      name: serviceName,
       email,
       password,
       url,

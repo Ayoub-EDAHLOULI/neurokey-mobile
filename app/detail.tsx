@@ -25,10 +25,10 @@ export default function DetailScreen() {
   const insets = useSafeAreaInsets();
 
   // 👇 Get isLoading from context
-  const { deletePassword, passwords, isLoading } = useVault();
+  const { deleteVaultItem, items, isLoading } = useVault();
 
   // Find the item
-  const item = passwords.find((p) => p.id === params.id);
+  const item = items.find((p) => p.id === params.id);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   // CASE 1: Still loading data from disk
@@ -90,7 +90,7 @@ export default function DetailScreen() {
         text: "Delete",
         style: "destructive",
         onPress: () => {
-          deletePassword(item.id);
+          deleteVaultItem(item.id);
           router.back();
         },
       },
@@ -98,7 +98,7 @@ export default function DetailScreen() {
   };
 
   const renderIcon = () => {
-    const { icon, color, serviceName } = item;
+    const { icon, color, name } = item;
     if (icon && icon.startsWith("logo-")) {
       return (
         <View style={[styles.iconCircle, { backgroundColor: theme.card }]}>
@@ -111,7 +111,7 @@ export default function DetailScreen() {
         style={[styles.iconCircle, { backgroundColor: color || theme.primary }]}
       >
         <Text style={{ fontSize: 30, color: "#FFF", fontWeight: "bold" }}>
-          {serviceName?.charAt(0).toUpperCase()}
+          {name?.charAt(0).toUpperCase()}
         </Text>
       </View>
     );
@@ -139,9 +139,7 @@ export default function DetailScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={{ alignItems: "center", marginVertical: 20 }}>
           {renderIcon()}
-          <Text style={[styles.title, { color: theme.text }]}>
-            {item.serviceName}
-          </Text>
+          <Text style={[styles.title, { color: theme.text }]}>{item.name}</Text>
           <Text style={{ color: theme.subText, fontSize: 16 }}>
             {item.email}
           </Text>
@@ -159,10 +157,10 @@ export default function DetailScreen() {
               style={[styles.value, { color: theme.subText }]}
               numberOfLines={1}
             >
-              {item.email}
+              {item.email ?? "No email"}
             </Text>
             <TouchableOpacity
-              onPress={() => copyToClipboard(item.email, "Username")}
+              onPress={() => copyToClipboard(item.email ?? "", "Username")}
             >
               <Ionicons name="copy-outline" size={20} color={theme.primary} />
             </TouchableOpacity>
@@ -193,7 +191,7 @@ export default function DetailScreen() {
                 />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => copyToClipboard(item.password, "Password")}
+                onPress={() => copyToClipboard(item.password ?? "", "Password")}
               >
                 <Ionicons name="copy-outline" size={20} color={theme.primary} />
               </TouchableOpacity>
@@ -213,7 +211,7 @@ export default function DetailScreen() {
               style={[styles.value, { color: theme.subText }]}
               numberOfLines={1}
             >
-              {item.url || "None"}
+              {item.url ?? "None"}
             </Text>
           </View>
           <View
