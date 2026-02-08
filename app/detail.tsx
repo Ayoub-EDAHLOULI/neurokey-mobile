@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+// 👇 Import the component
 import CustomAlert from "../src/components/CustomAlert";
 import { useVault } from "../src/context/VaultContext";
 import { Colors } from "../src/theme";
@@ -24,14 +25,39 @@ export default function DetailScreen() {
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
   const insets = useSafeAreaInsets();
 
-  // 👇 Get isLoading from context
   const { deleteVaultItem, items, isLoading } = useVault();
-
-  // Find the item
   const item = items.find((p) => p.id === params.id);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-  // CASE 1: Still loading data from disk
+  // 👇 NEW: Alert State Control
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+    buttons?: any[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    type: "info",
+    buttons: [],
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: any = "info",
+    buttons: any[] = [],
+  ) => {
+    setAlertConfig({ visible: true, title, message, type, buttons });
+  };
+
+  const closeAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
+  // CASE 1: Loading
   if (isLoading) {
     return (
       <View
@@ -49,7 +75,7 @@ export default function DetailScreen() {
     );
   }
 
-  // CASE 2: Data loaded, but item not found (Deleted)
+  // CASE 2: Not Found
   if (!item) {
     return (
       <View
@@ -77,37 +103,33 @@ export default function DetailScreen() {
     );
   }
 
-  // CASE 3: Item found - Render normal UI
+  // --- ACTIONS ---
+
   const copyToClipboard = async (text: string, label: string) => {
     await Clipboard.setStringAsync(text);
-    CustomAlert({
-      visible: true,
-      title: "Copied",
-      message: `${label} copied.`,
-      onClose: () => {},
-      theme,
-    });
+    // 👇 Update State instead of calling function
+    showAlert("Copied", `${label} copied to clipboard.`, "success");
   };
 
   const handleDelete = () => {
-    CustomAlert({
-      visible: true,
-      title: "Delete Password",
-      message: "Are you sure?",
-      onClose: () => {},
-      theme,
-      buttons: [
-        { text: "Cancel", style: "cancel" },
+    // 👇 Update State with Buttons
+    showAlert(
+      "Delete Password",
+      "Are you sure? This action cannot be undone.",
+      "warning",
+      [
+        { text: "Cancel", style: "cancel", onPress: closeAlert },
         {
           text: "Delete",
           style: "destructive",
           onPress: () => {
+            closeAlert();
             deleteVaultItem(item.id);
             router.back();
           },
         },
       ],
-    });
+    );
   };
 
   const renderIcon = () => {
@@ -259,6 +281,17 @@ export default function DetailScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* 👇 RENDER CUSTOM ALERT HERE */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        buttons={alertConfig.buttons}
+        onClose={closeAlert}
+        theme={theme}
+      />
     </View>
   );
 }

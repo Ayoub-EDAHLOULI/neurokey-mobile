@@ -1,4 +1,3 @@
-import CustomAlert from "@/src/components/CustomAlert";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import * as Clipboard from "expo-clipboard";
@@ -14,6 +13,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+// 👇 Import the component
+import CustomAlert from "../../src/components/CustomAlert";
 import { Colors } from "../../src/theme";
 
 export default function GeneratorScreen() {
@@ -29,6 +30,24 @@ export default function GeneratorScreen() {
   const [includeNumbers, setIncludeNumbers] = useState(true);
   const [includeSymbols, setIncludeSymbols] = useState(true);
   const [strengthScore, setStrengthScore] = useState(0);
+
+  // 👇 NEW: State to control the Alert
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
+
+  // Helper to close alert
+  const closeAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
 
   // --- GENERATOR LOGIC ---
   const generatePassword = useCallback(() => {
@@ -88,12 +107,13 @@ export default function GeneratorScreen() {
 
   const copyToClipboard = async () => {
     await Clipboard.setStringAsync(password);
-    CustomAlert({
+
+    // 👇 FIX: Update state instead of calling component function
+    setAlertConfig({
       visible: true,
-      title: "Copied",
+      title: "Copied!",
       message: "Password copied to clipboard.",
-      onClose: () => {},
-      theme,
+      type: "success",
     });
   };
 
@@ -254,6 +274,16 @@ export default function GeneratorScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* 👇 FIX: Render the Alert Component Here */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={closeAlert}
+        theme={theme}
+      />
     </View>
   );
 }
