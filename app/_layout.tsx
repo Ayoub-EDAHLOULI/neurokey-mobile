@@ -26,7 +26,7 @@ export default function RootLayout() {
     SystemUI.setBackgroundColorAsync(theme.background);
   }, [colorScheme, theme.background]);
 
-  // 2. 👇 SECURITY: AUTO-LOCK LISTENER
+  // 2. SECURITY: AUTO-LOCK LISTENER
   useEffect(() => {
     const subscription = AppState.addEventListener(
       "change",
@@ -44,10 +44,7 @@ export default function RootLayout() {
           const isAutoLockEnabled = autoLockPref !== "false";
 
           if (isAutoLockEnabled) {
-            console.log("🔒 Auto-Lock Triggered");
             router.replace("/auth");
-          } else {
-            console.log("🔓 Auto-Lock Skipped (User Disabled)");
           }
         }
       },
