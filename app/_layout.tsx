@@ -32,8 +32,6 @@ export default function RootLayout() {
       "change",
       async (nextAppState: AppStateStatus) => {
         if (nextAppState === "active") {
-          // App came to Foreground
-
           // Check if user is already on Auth screen (Don't lock if already locked)
           const inAuthGroup = segments[0] === "auth";
           if (inAuthGroup) return;
@@ -44,6 +42,7 @@ export default function RootLayout() {
           const isAutoLockEnabled = autoLockPref !== "false";
 
           if (isAutoLockEnabled) {
+            console.log("🔒 Auto-Lock Triggered");
             router.replace("/auth");
           }
         }
@@ -53,7 +52,7 @@ export default function RootLayout() {
     return () => {
       subscription.remove();
     };
-  }, [segments, router]); // 👈 Added 'router' to fix the warning
+  }, [segments, router]);
 
   return (
     <VaultProvider>
@@ -62,14 +61,20 @@ export default function RootLayout() {
           screenOptions={{
             contentStyle: { backgroundColor: theme.background },
             headerStyle: { backgroundColor: theme.background },
-            presentation: "card",
+            animation: "fade_from_bottom", // The specific effect you asked for
+            animationDuration: 300, // Smooth 300ms transition
+            presentation: "card", // Default mode
           }}
         >
-          <Stack.Screen name="auth" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="auth"
+            options={{ headerShown: false, animation: "fade" }}
+          />
+
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-          {/* Modals */}
+          {/* Modals still slide up fully because of presentation: 'modal' */}
           <Stack.Screen
             name="add"
             options={{ presentation: "modal", headerShown: false }}
