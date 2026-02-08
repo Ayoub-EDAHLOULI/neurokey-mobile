@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // 👇 Import the component
 import CustomAlert from "../src/components/CustomAlert";
 import { useVault } from "../src/context/VaultContext";
+import { checkPasswordLeak } from "../src/core/security/breachCheck";
 import { Colors } from "../src/theme";
 
 export default function DetailScreen() {
@@ -28,6 +29,8 @@ export default function DetailScreen() {
   const { deleteVaultItem, items, isLoading } = useVault();
   const item = items.find((p) => p.id === params.id);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [breachCount, setBreachCount] = useState<number | null>(null);
+  const [isCheckingBreach, setIsCheckingBreach] = useState(false);
 
   // 👇 NEW: Alert State Control
   const [alertConfig, setAlertConfig] = useState<{
@@ -55,6 +58,25 @@ export default function DetailScreen() {
 
   const closeAlert = () => {
     setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
+  // Run Breach Check on Load
+  useEffect(() => {
+    if (item?.password) {
+      runBreachCheck(item.password);
+    }
+  }, [item?.password]);
+
+  const runBreachCheck = async (password: string) => {
+    setIsCheckingBreach(true);
+    // Don't check empty or dummy passwords
+    if (!password) {
+      setIsCheckingBreach(false);
+      return;
+    }
+    const count = await checkPasswordLeak(password);
+    setBreachCount(count);
+    setIsCheckingBreach(false);
   };
 
   // CASE 1: Loading
@@ -107,12 +129,10 @@ export default function DetailScreen() {
 
   const copyToClipboard = async (text: string, label: string) => {
     await Clipboard.setStringAsync(text);
-    // 👇 Update State instead of calling function
     showAlert("Copied", `${label} copied to clipboard.`, "success");
   };
 
   const handleDelete = () => {
-    // 👇 Update State with Buttons
     showAlert(
       "Delete Password",
       "Are you sure? This action cannot be undone.",
@@ -234,6 +254,64 @@ export default function DetailScreen() {
           </View>
         </View>
 
+        {/* BREACH RADAR BANNER */}
+        <View style={{ marginHorizontal: 16, marginBottom: 20 }}>
+          {isCheckingBreach ? (
+            <View style={[styles.radarCard, { backgroundColor: theme.card }]}>
+              <ActivityIndicator size="small" color={theme.subText} />
+              <Text style={{ color: theme.subText, marginLeft: 10 }}>
+                Scanning Breach Radar...
+              </Text>
+            </View>
+          ) : breachCount !== null && breachCount > 0 ? (
+            <View
+              style={[
+                styles.radarCard,
+                {
+                  backgroundColor: "#FF3B3020",
+                  borderColor: "#FF3B30",
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <Ionicons name="warning" size={24} color="#FF3B30" />
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text style={{ color: "#FF3B30", fontWeight: "bold" }}>
+                  Leaked Password!
+                </Text>
+                <Text style={{ color: theme.text, fontSize: 13 }}>
+                  Found in{" "}
+                  <Text style={{ fontWeight: "bold" }}>
+                    {breachCount.toLocaleString()}
+                  </Text>{" "}
+                  data breaches. Change this immediately.
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.radarCard,
+                {
+                  backgroundColor: "#34C75920",
+                  borderColor: "#34C759",
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <Ionicons name="shield-checkmark" size={24} color="#34C759" />
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text style={{ color: "#34C759", fontWeight: "bold" }}>
+                  Safe & Secure
+                </Text>
+                <Text style={{ color: theme.text, fontSize: 13 }}>
+                  No leaks detected in known data breaches.
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+
         <View style={styles.sectionTitleContainer}>
           <Text style={[styles.sectionTitle, { color: theme.subText }]}>
             DETAILS
@@ -351,5 +429,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
+  },
+  radarCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    marginTop: 10,
+    borderRadius: 12,
   },
 });
