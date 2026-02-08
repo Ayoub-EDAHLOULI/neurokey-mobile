@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react"; // 👈 Added useEffect
 import {
   KeyboardAvoidingView,
   Platform,
@@ -13,7 +13,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-// 👇 Import the component
 import CustomAlert from "../src/components/CustomAlert";
 import { useVault } from "../src/context/VaultContext";
 import { Colors } from "../src/theme";
@@ -65,7 +64,10 @@ export default function EditPasswordScreen() {
   const [selectedIcon, setSelectedIcon] = useState(initialIcon);
   const [showPassword, setShowPassword] = useState(false);
 
-  // 👇 NEW: Alert State
+  // Strength State
+  const [passwordStrength, setPasswordStrength] = useState(0);
+
+  // Alert State
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -86,14 +88,41 @@ export default function EditPasswordScreen() {
     setAlertConfig((prev) => ({ ...prev, visible: false }));
   };
 
+  // --- GENERATOR HELPERS ---
+
+  const generatePassword = () => {
+    const chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+    let autoPass = "";
+    for (let i = 0; i < 16; i++) {
+      autoPass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setPassword(autoPass);
+  };
+
+  // Strength Calculator
+  useEffect(() => {
+    let score = 0;
+    if (password.length > 8) score++;
+    if (password.length > 12) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) score++;
+    setPasswordStrength(score);
+  }, [password]);
+
+  const getStrengthColor = () => {
+    if (password.length === 0) return theme.border;
+    if (passwordStrength <= 1) return theme.strengthWeak;
+    if (passwordStrength === 2) return theme.strengthMedium;
+    return theme.strengthStrong;
+  };
+
   const handleUpdate = () => {
     if (!serviceName || !password) {
-      // 👇 Updated to use state
       showAlert("Missing Info", "Name and Password are required.", "error");
       return;
     }
 
-    // 2. CALL UPDATE
     updateVaultItem(params.id as string, {
       type: "password",
       name: serviceName,
@@ -105,7 +134,6 @@ export default function EditPasswordScreen() {
       color: selectedIcon.color,
     });
 
-    // 3. GO BACK (Closes the modal)
     router.back();
   };
 
@@ -219,7 +247,7 @@ export default function EditPasswordScreen() {
           <View
             style={[
               styles.inputRow,
-              { borderBottomColor: "transparent", paddingRight: 10 },
+              { borderBottomColor: theme.border, paddingRight: 10 },
             ]}
           >
             <TextInput
@@ -239,6 +267,50 @@ export default function EditPasswordScreen() {
               />
             </TouchableOpacity>
           </View>
+
+          {/* Strength Bar */}
+          <View style={{ flexDirection: "row", height: 4, width: "100%" }}>
+            <View
+              style={{
+                flex: 1,
+                backgroundColor:
+                  password.length > 0 ? getStrengthColor() : "transparent",
+                opacity: 0.3,
+              }}
+            />
+            <View
+              style={{
+                flex: 1,
+                backgroundColor:
+                  passwordStrength >= 2 ? getStrengthColor() : "transparent",
+                opacity: 0.5,
+              }}
+            />
+            <View
+              style={{
+                flex: 1,
+                backgroundColor:
+                  passwordStrength >= 3 ? getStrengthColor() : "transparent",
+                opacity: 0.8,
+              }}
+            />
+            <View
+              style={{
+                flex: 1,
+                backgroundColor:
+                  passwordStrength >= 4 ? getStrengthColor() : "transparent",
+                opacity: 1.0,
+              }}
+            />
+          </View>
+
+          {/* Generator Button */}
+          <TouchableOpacity style={styles.actionRow} onPress={generatePassword}>
+            <Ionicons name="sparkles" size={20} color={theme.primary} />
+            <Text style={[styles.actionText, { color: theme.primary }]}>
+              Generate New Password
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={[styles.formGroup, { marginTop: 24 }]}>
@@ -280,7 +352,6 @@ export default function EditPasswordScreen() {
         </View>
       </ScrollView>
 
-      {/* 👇 RENDER CUSTOM ALERT */}
       <CustomAlert
         visible={alertConfig.visible}
         title={alertConfig.title}
@@ -321,4 +392,12 @@ const styles = StyleSheet.create({
   },
   label: { width: 80, fontSize: 16, fontWeight: "500" },
   input: { flex: 1, fontSize: 16 },
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+    gap: 8,
+  },
+  actionText: { fontSize: 16, fontWeight: "600" },
 });
