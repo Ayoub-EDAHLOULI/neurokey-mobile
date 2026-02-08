@@ -99,6 +99,10 @@ export default function RootLayout() {
             name="edit-card"
             options={{ presentation: "modal", headerShown: false }}
           />
+          <Stack.Screen
+            name="security-tips"
+            options={{ presentation: "modal", headerShown: false }}
+          />
         </Stack>
         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       </ThemeProvider>

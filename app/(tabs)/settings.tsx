@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as LocalAuthentication from "expo-local-authentication";
+import { useRouter } from "expo-router";
 import * as Updates from "expo-updates";
 import React, { useEffect, useState } from "react";
 import {
-  Linking,
   ScrollView,
   StyleSheet,
   Switch,
@@ -18,6 +18,7 @@ import CustomAlert from "../../src/components/CustomAlert";
 import { Colors } from "../../src/theme";
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const scheme = useColorScheme();
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
   const insets = useSafeAreaInsets();
@@ -55,7 +56,7 @@ export default function SettingsScreen() {
     setAlertConfig((prev) => ({ ...prev, visible: false }));
   };
 
-  // --- 👇 LOAD SETTINGS ON START ---
+  // --- LOAD SETTINGS ON START ---
   useEffect(() => {
     (async () => {
       // 1. Biometrics
@@ -89,7 +90,7 @@ export default function SettingsScreen() {
     }
   };
 
-  // 👇 UPDATED: Save Auto-Lock Preference
+  // --- UPDATED: Save Auto-Lock Preference ---
   const handleAutoLockToggle = async (value: boolean) => {
     setAutoLock(value);
     await AsyncStorage.setItem("auto_lock", String(value));
@@ -109,10 +110,6 @@ export default function SettingsScreen() {
         },
       },
     ]);
-  };
-
-  const openLink = (url: string) => {
-    Linking.openURL(url).catch(console.error);
   };
 
   // --- COMPONENT ---
@@ -215,10 +212,10 @@ export default function SettingsScreen() {
         </Text>
         <View style={[styles.group, { backgroundColor: theme.card }]}>
           <SettingRow
-            icon="information-circle-outline"
-            color="#8E8E93"
-            label="Privacy Policy"
-            onPress={() => openLink("https://google.com")}
+            icon="shield-checkmark-outline"
+            color="#32ADE6"
+            label="Security Guide"
+            onPress={() => router.push("/security-tips")}
           />
           <SettingRow
             icon="star-outline"
