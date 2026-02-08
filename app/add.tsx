@@ -12,14 +12,13 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-import { Colors } from "../src/theme";
-// 👇 Import the Hook
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useVault } from "../src/context/VaultContext";
-// 👇 Import Component
 import CustomAlert from "../src/components/CustomAlert";
+import { useVault } from "../src/context/VaultContext";
+import { Colors } from "../src/theme";
+// 👇 Import the new tools
+import UniversalIcon, { getFaviconUrl } from "../src/components/UniversalIcon";
 
-// --- CONFIG: AVAILABLE ICONS ---
 const BRAND_ICONS = [
   { id: "amazon", name: "Amazon", icon: "logo-amazon", color: "#FF9900" },
   { id: "google", name: "Google", icon: "logo-google", color: "#4285F4" },
@@ -49,7 +48,6 @@ export default function AddPasswordScreen() {
   const scheme = useColorScheme();
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
   const insets = useSafeAreaInsets();
-
   const { addVaultItem } = useVault();
 
   // --- STATE ---
@@ -59,33 +57,39 @@ export default function AddPasswordScreen() {
   const [url, setUrl] = useState("");
   const [notes, setNotes] = useState("");
 
-  const [selectedIcon, setSelectedIcon] = useState(BRAND_ICONS[0]);
+  // Icon State: Default to "Other"
+  const [selectedIcon, setSelectedIcon] = useState(BRAND_ICONS[10].icon);
+  const [selectedColor, setSelectedColor] = useState(BRAND_ICONS[10].color);
+
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  // 👇 NEW: Alert State
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
     message: string;
     type: "success" | "error" | "warning" | "info";
-  }>({
-    visible: false,
-    title: "",
-    message: "",
-    type: "info",
-  });
+  }>({ visible: false, title: "", message: "", type: "info" });
 
   const showAlert = (title: string, message: string, type: any = "info") => {
     setAlertConfig({ visible: true, title, message, type });
   };
-
-  const closeAlert = () => {
+  const closeAlert = () =>
     setAlertConfig((prev) => ({ ...prev, visible: false }));
-  };
+
+  // --- AUTO-FETCH FAVICON ---
+  useEffect(() => {
+    if (url.length > 4 && url.includes(".")) {
+      const fetchIcon = getFaviconUrl(url);
+      if (fetchIcon) {
+        // If we found a favicon, use it and set a neutral background
+        setSelectedIcon(fetchIcon);
+        setSelectedColor(theme.card);
+      }
+    }
+  }, [url, theme.card]);
 
   // --- HELPERS ---
-
   const generatePassword = () => {
     const chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
@@ -114,7 +118,6 @@ export default function AddPasswordScreen() {
 
   const handleSave = () => {
     if (!serviceName || !password) {
-      // 👇 Use State
       showAlert("Missing Info", "Please add a name and password.", "error");
       return;
     }
@@ -126,8 +129,8 @@ export default function AddPasswordScreen() {
       password,
       url,
       notes,
-      icon: selectedIcon.icon,
-      color: selectedIcon.color,
+      icon: selectedIcon, // This might be a URL string now!
+      color: selectedColor,
     });
 
     router.back();
@@ -138,7 +141,6 @@ export default function AddPasswordScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      {/* HEADER */}
       <View style={[styles.header, { paddingTop: insets.top + 30 }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={{ color: theme.primary, fontSize: 17 }}>Cancel</Text>
@@ -158,14 +160,44 @@ export default function AddPasswordScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* 1. ICON PICKER */}
         <View style={{ marginTop: 20, marginBottom: 20 }}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.subText, marginLeft: 20 },
-            ]}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingHorizontal: 20,
+              marginBottom: 10,
+            }}
           >
-            CHOOSE ICON
-          </Text>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: theme.subText, marginBottom: 0, marginLeft: 0 },
+              ]}
+            >
+              CHOOSE ICON
+            </Text>
+
+            {/* Preview of Current Icon */}
+            <View
+              style={[
+                styles.iconCircle,
+                {
+                  backgroundColor: selectedColor,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                },
+              ]}
+            >
+              <UniversalIcon
+                icon={selectedIcon}
+                size={24}
+                color={selectedIcon.startsWith("http") ? undefined : "#FFF"}
+              />
+            </View>
+          </View>
+
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -174,7 +206,11 @@ export default function AddPasswordScreen() {
             {BRAND_ICONS.map((brand) => (
               <TouchableOpacity
                 key={brand.id}
-                onPress={() => setSelectedIcon(brand)}
+                onPress={() => {
+                  // Manual override: User tapped a specific brand
+                  setSelectedIcon(brand.icon);
+                  setSelectedColor(brand.color);
+                }}
                 style={{ alignItems: "center", marginRight: 20 }}
               >
                 <View
@@ -182,10 +218,10 @@ export default function AddPasswordScreen() {
                     styles.iconCircle,
                     {
                       backgroundColor:
-                        selectedIcon.id === brand.id ? brand.color : theme.card,
+                        selectedIcon === brand.icon ? brand.color : theme.card,
                       borderWidth: 2,
                       borderColor:
-                        selectedIcon.id === brand.id
+                        selectedIcon === brand.icon
                           ? "transparent"
                           : theme.border,
                     },
@@ -194,9 +230,7 @@ export default function AddPasswordScreen() {
                   <Ionicons
                     name={brand.icon as any}
                     size={28}
-                    color={
-                      selectedIcon.id === brand.id ? "#FFF" : theme.subText
-                    }
+                    color={selectedIcon === brand.icon ? "#FFF" : theme.subText}
                   />
                 </View>
                 <Text
@@ -204,8 +238,8 @@ export default function AddPasswordScreen() {
                     marginTop: 8,
                     fontSize: 12,
                     color:
-                      selectedIcon.id === brand.id ? theme.text : theme.subText,
-                    fontWeight: selectedIcon.id === brand.id ? "600" : "400",
+                      selectedIcon === brand.icon ? theme.text : theme.subText,
+                    fontWeight: selectedIcon === brand.icon ? "600" : "400",
                   }}
                 >
                   {brand.name}
@@ -215,7 +249,7 @@ export default function AddPasswordScreen() {
           </ScrollView>
         </View>
 
-        {/* 2. CREDENTIALS FORM */}
+        {/* 2. FORM */}
         <View style={styles.formGroup}>
           <View
             style={[
@@ -232,7 +266,6 @@ export default function AddPasswordScreen() {
               onChangeText={setServiceName}
             />
           </View>
-
           <View
             style={[
               styles.inputRow,
@@ -251,7 +284,7 @@ export default function AddPasswordScreen() {
           </View>
         </View>
 
-        {/* 3. PASSWORD SECTION */}
+        {/* 3. PASSWORD */}
         <Text
           style={[
             styles.sectionTitle,
@@ -286,8 +319,6 @@ export default function AddPasswordScreen() {
               />
             </TouchableOpacity>
           </View>
-
-          {/* Strength Bar */}
           <View style={{ flexDirection: "row", height: 4, width: "100%" }}>
             <View
               style={{
@@ -322,8 +353,6 @@ export default function AddPasswordScreen() {
               }}
             />
           </View>
-
-          {/* Generator Button */}
           <TouchableOpacity style={styles.actionRow} onPress={generatePassword}>
             <Ionicons name="sparkles" size={20} color={theme.primary} />
             <Text style={[styles.actionText, { color: theme.primary }]}>
@@ -332,7 +361,7 @@ export default function AddPasswordScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 4. EXTRA INFO */}
+        {/* 4. URL & NOTES */}
         <View style={[styles.formGroup, { marginTop: 24 }]}>
           <View
             style={[
@@ -341,6 +370,7 @@ export default function AddPasswordScreen() {
             ]}
           >
             <Text style={[styles.label, { color: theme.text }]}>URL</Text>
+            {/* 👇 UPDATED: URL INPUT */}
             <TextInput
               style={[styles.input, { color: theme.text }]}
               placeholder="https://example.com"
@@ -350,7 +380,6 @@ export default function AddPasswordScreen() {
               autoCapitalize="none"
             />
           </View>
-
           <View
             style={[
               styles.inputRow,
@@ -378,7 +407,6 @@ export default function AddPasswordScreen() {
         </View>
       </ScrollView>
 
-      {/* 👇 RENDER CUSTOM ALERT */}
       <CustomAlert
         visible={alertConfig.visible}
         title={alertConfig.title}
@@ -409,11 +437,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  formGroup: {
-    borderRadius: 12,
-    overflow: "hidden",
-    marginHorizontal: 16,
-  },
+  formGroup: { borderRadius: 12, overflow: "hidden", marginHorizontal: 16 },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
