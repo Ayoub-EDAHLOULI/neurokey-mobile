@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as LocalAuthentication from "expo-local-authentication"; // 👇 1. Import this
+import * as LocalAuthentication from "expo-local-authentication";
 import * as Updates from "expo-updates";
 import React, { useEffect, useState } from "react";
 import {
@@ -55,95 +55,76 @@ export default function SettingsScreen() {
     setAlertConfig((prev) => ({ ...prev, visible: false }));
   };
 
-  // --- 👇 2. CHECK BIOMETRIC SUPPORT ON LOAD ---
+  // --- 👇 LOAD SETTINGS ON START ---
   useEffect(() => {
     (async () => {
-      // Check if hardware supports it
+      // 1. Biometrics
       const compatible = await LocalAuthentication.hasHardwareAsync();
       setIsBiometricSupported(compatible);
-
-      // Load saved preference
       const savedBiometric = await AsyncStorage.getItem("use_biometric");
       setFaceIdEnabled(savedBiometric === "true");
+
+      // 2. Auto Lock (Default to true if not set)
+      const savedAutoLock = await AsyncStorage.getItem("auto_lock");
+      setAutoLock(savedAutoLock !== "false"); // Default true
     })();
   }, []);
 
-  // --- 👇 3. HANDLE TOGGLE LOGIC ---
+  // --- HANDLERS ---
+
   const handleBiometricToggle = async (value: boolean) => {
     if (value) {
-      // Turning ON: Verify identity first
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: "Confirm Identity to Enable",
+        promptMessage: "Confirm Identity",
         fallbackLabel: "Use Password",
       });
-
       if (result.success) {
         setFaceIdEnabled(true);
         await AsyncStorage.setItem("use_biometric", "true");
         showAlert("Secured", "Face ID / Touch ID enabled.", "success");
-      } else {
-        // If they failed the scan or cancelled, don't enable it
-        setFaceIdEnabled(false);
       }
     } else {
-      // Turning OFF
       setFaceIdEnabled(false);
       await AsyncStorage.setItem("use_biometric", "false");
     }
   };
 
-  // --- ACTIONS ---
+  // 👇 UPDATED: Save Auto-Lock Preference
+  const handleAutoLockToggle = async (value: boolean) => {
+    setAutoLock(value);
+    await AsyncStorage.setItem("auto_lock", String(value));
+  };
 
+  // --- ACTIONS ---
   const handleClearData = async () => {
-    showAlert(
-      "Wipe All Data?",
-      "This will permanently delete all passwords and cards. This cannot be undone.",
-      "warning",
-      [
-        { text: "Cancel", style: "cancel", onPress: closeAlert },
-        {
-          text: "Delete Everything",
-          style: "destructive",
-          onPress: async () => {
-            closeAlert();
-            try {
-              await AsyncStorage.clear();
-              setTimeout(() => {
-                showAlert(
-                  "Success",
-                  "Vault wiped. The app will now reload.",
-                  "success",
-                  [{ text: "OK", onPress: () => Updates.reloadAsync() }],
-                );
-              }, 500);
-            } catch {
-              setTimeout(() => {
-                showAlert("Error", "Failed to clear data.", "error");
-              }, 500);
-            }
-          },
+    showAlert("Wipe Data?", "This cannot be undone.", "warning", [
+      { text: "Cancel", style: "cancel", onPress: closeAlert },
+      {
+        text: "Wipe",
+        style: "destructive",
+        onPress: async () => {
+          closeAlert();
+          await AsyncStorage.clear();
+          Updates.reloadAsync();
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const openLink = (url: string) => {
-    Linking.openURL(url).catch((err) =>
-      console.error("Couldn't load page", err),
-    );
+    Linking.openURL(url).catch(console.error);
   };
 
-  // --- COMPONENT: SETTING ROW ---
+  // --- COMPONENT ---
   const SettingRow = ({
     icon,
     color,
     label,
-    isSwitch = false,
-    value = false,
+    isSwitch,
+    value,
     onToggle,
-    isDestructive = false,
     onPress,
-    disabled = false,
+    disabled,
   }: any) => (
     <TouchableOpacity
       style={[
@@ -157,16 +138,8 @@ export default function SettingsScreen() {
         <View style={[styles.iconBox, { backgroundColor: color }]}>
           <Ionicons name={icon} size={18} color="#FFF" />
         </View>
-        <Text
-          style={[
-            styles.label,
-            { color: isDestructive ? theme.danger : theme.text },
-          ]}
-        >
-          {label}
-        </Text>
+        <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
       </View>
-
       {isSwitch ? (
         <Switch
           value={value}
@@ -187,7 +160,6 @@ export default function SettingsScreen() {
         { backgroundColor: theme.background, paddingTop: insets.top + 10 },
       ]}
     >
-      {/* HEADER */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>
           Settings
@@ -195,12 +167,10 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* SECTION 1: SECURITY */}
         <Text style={[styles.sectionHeader, { color: theme.subText }]}>
           SECURITY
         </Text>
         <View style={[styles.group, { backgroundColor: theme.card }]}>
-          {/* 👇 REAL FACE ID TOGGLE */}
           <SettingRow
             icon="scan-outline"
             color="#34C759"
@@ -208,20 +178,19 @@ export default function SettingsScreen() {
             isSwitch
             value={faceIdEnabled}
             onToggle={handleBiometricToggle}
-            disabled={!isBiometricSupported} // Disable if phone doesn't have it
+            disabled={!isBiometricSupported}
           />
-
+          {/* 👇 Using the new handler */}
           <SettingRow
             icon="lock-closed-outline"
             color="#FF9500"
             label="Auto-Lock"
             isSwitch
             value={autoLock}
-            onToggle={setAutoLock}
+            onToggle={handleAutoLockToggle}
           />
         </View>
 
-        {/* SECTION 2: DATA */}
         <Text style={[styles.sectionHeader, { color: theme.subText }]}>
           DATA
         </Text>
@@ -230,17 +199,13 @@ export default function SettingsScreen() {
             icon="cloud-upload-outline"
             color="#007AFF"
             label="Backup Vault"
-            onPress={() =>
-              showAlert("Backup", "Cloud backup feature coming soon!", "info")
-            }
+            onPress={() => showAlert("Backup", "Coming soon!", "info")}
           />
           <SettingRow
             icon="download-outline"
             color="#5856D6"
             label="Import Passwords"
-            onPress={() =>
-              showAlert("Import", "CSV Import feature coming soon!", "info")
-            }
+            onPress={() => showAlert("Import", "Coming soon!", "info")}
           />
         </View>
 
@@ -263,7 +228,6 @@ export default function SettingsScreen() {
           />
         </View>
 
-        {/* SECTION 4: DANGER ZONE */}
         <Text style={[styles.sectionHeader, { color: theme.subText }]}>
           DANGER ZONE
         </Text>
@@ -279,7 +243,6 @@ export default function SettingsScreen() {
             </View>
           </TouchableOpacity>
         </View>
-
         <Text
           style={{ textAlign: "center", color: theme.subText, marginTop: 20 }}
         >
@@ -287,7 +250,6 @@ export default function SettingsScreen() {
         </Text>
       </ScrollView>
 
-      {/* 👇 RENDER CUSTOM ALERT */}
       <CustomAlert
         visible={alertConfig.visible}
         title={alertConfig.title}
@@ -312,11 +274,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
   },
-  group: {
-    marginHorizontal: 16,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
+  group: { marginHorizontal: 16, borderRadius: 12, overflow: "hidden" },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",

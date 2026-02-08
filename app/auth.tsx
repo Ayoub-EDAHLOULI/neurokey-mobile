@@ -31,7 +31,7 @@ import Svg, {
   Rect,
   Stop,
 } from "react-native-svg";
-import CustomAlert from "../components/CustomAlert";
+import CustomAlert from "../src/components/CustomAlert";
 import {
   decryptData,
   deriveKey,
@@ -39,8 +39,8 @@ import {
   generateSalt,
   getSecureItem,
   saveSecureItem,
-} from "../core/security/encryption";
-import { Colors } from "../theme";
+} from "../src/core/security/encryption";
+import { Colors } from "../src/theme";
 
 // --- COMPONENT 1: NEUROKEY LOGO ---
 const NeuroKeyLogo = () => (
