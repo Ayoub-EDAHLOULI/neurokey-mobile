@@ -218,6 +218,12 @@ export default function SettingsScreen() {
             onPress={() => router.push("/security-tips")}
           />
           <SettingRow
+            icon="person-outline"
+            color="#AF52DE"
+            label="Developer"
+            onPress={() => router.push("/about")}
+          />
+          <SettingRow
             icon="star-outline"
             color="#FFD60A"
             label="Rate App"

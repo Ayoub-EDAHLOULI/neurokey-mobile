@@ -103,6 +103,10 @@ export default function RootLayout() {
             name="security-tips"
             options={{ presentation: "modal", headerShown: false }}
           />
+          <Stack.Screen
+            name="about"
+            options={{ presentation: "modal", headerShown: false }}
+          />
         </Stack>
         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       </ThemeProvider>
