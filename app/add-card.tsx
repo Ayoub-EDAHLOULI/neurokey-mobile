@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CreditCard from "../src/components/CreditCard";
+// 👇 Import Component
 import CustomAlert from "../src/components/CustomAlert";
 import { useVault } from "../src/context/VaultContext";
 import { Colors } from "../src/theme";
@@ -35,6 +36,27 @@ export default function AddCardScreen() {
     "visa",
   );
   const [notes, setNotes] = useState("");
+
+  // 👇 NEW: Alert State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
+
+  const showAlert = (title: string, message: string, type: any = "info") => {
+    setAlertConfig({ visible: true, title, message, type });
+  };
+
+  const closeAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
 
   // --- FORMATTING HELPERS ---
 
@@ -60,26 +82,20 @@ export default function AddCardScreen() {
   // --- SAVE ACTION ---
   const handleSave = () => {
     if (!holder || number.length < 15 || !expiry) {
-      CustomAlert({
-        visible: true,
-        title: "Incomplete Card",
-        message: "Please fill in the card details.",
-        onClose: () => {},
-        theme,
-      });
+      // 👇 Use State
+      showAlert("Incomplete Card", "Please fill in the card details.", "error");
       return;
     }
 
     addVaultItem({
-      type: "card", // 👈 Important: Mark it as a card
-      name: `${cardType.toUpperCase()} ending in ${number.slice(-4)}`, // Auto-generate a name
+      type: "card",
+      name: `${cardType.toUpperCase()} ending in ${number.slice(-4)}`,
       cardHolder: holder,
       cardNumber: number,
       expiry,
       cvv,
       cardType,
       notes,
-      // Default styles for cards
       color: "#007AFF",
       icon: "card",
     });
@@ -165,9 +181,9 @@ export default function AddCardScreen() {
               placeholder="0000 0000 0000 0000"
               placeholderTextColor={theme.subText}
               keyboardType="number-pad"
-              value={number} // We display the raw number, but the CreditCard component handles formatting visually
+              value={number}
               onChangeText={handleNumberChange}
-              maxLength={19} // With spaces
+              maxLength={19}
             />
             <Ionicons name="card-outline" size={20} color={theme.subText} />
           </View>
@@ -277,6 +293,16 @@ export default function AddCardScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* 👇 RENDER CUSTOM ALERT */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={closeAlert}
+        theme={theme}
+      />
     </KeyboardAvoidingView>
   );
 }

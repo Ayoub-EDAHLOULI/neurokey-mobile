@@ -14,21 +14,21 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CreditCard from "../src/components/CreditCard";
+// 👇 Import Component
 import CustomAlert from "../src/components/CustomAlert";
 import { useVault } from "../src/context/VaultContext";
 import { Colors } from "../src/theme";
 
 export default function EditCardScreen() {
   const router = useRouter();
-  // 👇 Get the existing card data passed from Detail Screen
   const params = useLocalSearchParams();
   const scheme = useColorScheme();
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
   const insets = useSafeAreaInsets();
 
-  const { updateVaultItem } = useVault(); // Using update function
+  const { updateVaultItem } = useVault();
 
-  // --- INITIALIZE STATE WITH EXISTING DATA ---
+  // --- INITIALIZE STATE ---
   const [holder, setHolder] = useState((params.cardHolder as string) || "");
   const [number, setNumber] = useState((params.cardNumber as string) || "");
   const [expiry, setExpiry] = useState((params.expiry as string) || "");
@@ -38,7 +38,28 @@ export default function EditCardScreen() {
   );
   const [notes, setNotes] = useState((params.notes as string) || "");
 
-  // --- HELPERS (Same as Add) ---
+  // 👇 NEW: Alert State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
+
+  const showAlert = (title: string, message: string, type: any = "info") => {
+    setAlertConfig({ visible: true, title, message, type });
+  };
+
+  const closeAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
+  // --- HELPERS ---
   const handleNumberChange = (text: string) => {
     const cleaned = text.replace(/\D/g, "");
     const truncated = cleaned.slice(0, 16);
@@ -57,17 +78,11 @@ export default function EditCardScreen() {
   // --- UPDATE ACTION ---
   const handleUpdate = () => {
     if (!holder || number.length < 15 || !expiry) {
-      CustomAlert({
-        visible: true,
-        title: "Incomplete Card",
-        message: "Please fill in the card details.",
-        onClose: () => {},
-        theme,
-      });
+      // 👇 Updated to use state
+      showAlert("Incomplete Card", "Please fill in the card details.", "error");
       return;
     }
 
-    // 👇 Call UPDATE instead of ADD
     updateVaultItem(params.id as string, {
       name: `${cardType.toUpperCase()} ending in ${number.slice(-4)}`,
       cardHolder: holder,
@@ -265,6 +280,16 @@ export default function EditCardScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* 👇 RENDER CUSTOM ALERT */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={closeAlert}
+        theme={theme}
+      />
     </KeyboardAvoidingView>
   );
 }

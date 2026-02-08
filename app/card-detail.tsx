@@ -12,7 +12,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import CreditCard from "../src/components/CreditCard"; // Import your card component
+import CreditCard from "../src/components/CreditCard";
+// 👇 Import Component
 import CustomAlert from "../src/components/CustomAlert";
 import { useVault } from "../src/context/VaultContext";
 import { Colors } from "../src/theme";
@@ -30,39 +31,61 @@ export default function CardDetailScreen() {
   const item = items.find((p) => p.id === params.id);
   const [isCvvVisible, setIsCvvVisible] = useState(false);
 
+  // 👇 NEW: Alert State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+    buttons?: any[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    type: "info",
+    buttons: [],
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: any = "info",
+    buttons: any[] = [],
+  ) => {
+    setAlertConfig({ visible: true, title, message, type, buttons });
+  };
+
+  const closeAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
   if (!item) return null;
 
   const copyToClipboard = async (text: string, label: string) => {
     await Clipboard.setStringAsync(text);
-    if (Platform.OS === "ios")
-      CustomAlert({
-        visible: true,
-        title: "Copied",
-        message: `${label} copied.`,
-        onClose: () => {},
-        theme,
-      });
+    // 👇 Use state instead of function call
+    showAlert("Copied", `${label} copied.`, "success");
   };
 
   const handleDelete = () => {
-    CustomAlert({
-      visible: true,
-      title: "Delete Card",
-      message: "Are you sure?",
-      onClose: () => {},
-      theme,
-      buttons: [
-        { text: "Cancel", style: "cancel" },
+    // 👇 Use state with buttons
+    showAlert(
+      "Delete Card",
+      "Are you sure? This action cannot be undone.",
+      "warning",
+      [
+        { text: "Cancel", style: "cancel", onPress: closeAlert },
         {
           text: "Delete",
           style: "destructive",
           onPress: () => {
+            closeAlert();
             deleteVaultItem(item.id);
             router.back();
           },
         },
       ],
-    });
+    );
   };
 
   return (
@@ -212,6 +235,17 @@ export default function CardDetailScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* 👇 RENDER CUSTOM ALERT */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        buttons={alertConfig.buttons}
+        onClose={closeAlert}
+        theme={theme}
+      />
     </View>
   );
 }

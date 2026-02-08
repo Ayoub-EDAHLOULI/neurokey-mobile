@@ -1,4 +1,3 @@
-import CustomAlert from "@/src/components/CustomAlert";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -14,6 +13,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+// 👇 Import the component
+import CustomAlert from "../src/components/CustomAlert";
 import { useVault } from "../src/context/VaultContext";
 import { Colors } from "../src/theme";
 
@@ -64,15 +65,31 @@ export default function EditPasswordScreen() {
   const [selectedIcon, setSelectedIcon] = useState(initialIcon);
   const [showPassword, setShowPassword] = useState(false);
 
+  // 👇 NEW: Alert State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
+
+  const showAlert = (title: string, message: string, type: any = "info") => {
+    setAlertConfig({ visible: true, title, message, type });
+  };
+
+  const closeAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
   const handleUpdate = () => {
     if (!serviceName || !password) {
-      CustomAlert({
-        visible: true,
-        title: "Missing Info",
-        message: "Name and Password are required.",
-        onClose: () => {},
-        theme,
-      });
+      // 👇 Updated to use state
+      showAlert("Missing Info", "Name and Password are required.", "error");
       return;
     }
 
@@ -262,6 +279,16 @@ export default function EditPasswordScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* 👇 RENDER CUSTOM ALERT */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={closeAlert}
+        theme={theme}
+      />
     </KeyboardAvoidingView>
   );
 }

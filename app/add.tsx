@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,6 +16,8 @@ import { Colors } from "../src/theme";
 // 👇 Import the Hook
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useVault } from "../src/context/VaultContext";
+// 👇 Import Component
+import CustomAlert from "../src/components/CustomAlert";
 
 // --- CONFIG: AVAILABLE ICONS ---
 const BRAND_ICONS = [
@@ -47,9 +48,8 @@ export default function AddPasswordScreen() {
   const router = useRouter();
   const scheme = useColorScheme();
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
-  const insets = useSafeAreaInsets(); // Fix header jumping
+  const insets = useSafeAreaInsets();
 
-  // 👇 Get Action from Context
   const { addVaultItem } = useVault();
 
   // --- STATE ---
@@ -63,9 +63,29 @@ export default function AddPasswordScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
+  // 👇 NEW: Alert State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
+
+  const showAlert = (title: string, message: string, type: any = "info") => {
+    setAlertConfig({ visible: true, title, message, type });
+  };
+
+  const closeAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
   // --- HELPERS ---
 
-  // 1. Password Generator
   const generatePassword = () => {
     const chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
@@ -76,7 +96,6 @@ export default function AddPasswordScreen() {
     setPassword(autoPass);
   };
 
-  // 2. Strength Calculator
   useEffect(() => {
     let score = 0;
     if (password.length > 8) score++;
@@ -86,7 +105,6 @@ export default function AddPasswordScreen() {
     setPasswordStrength(score);
   }, [password]);
 
-  // 3. Get Strength Color
   const getStrengthColor = () => {
     if (password.length === 0) return theme.border;
     if (passwordStrength <= 1) return theme.strengthWeak;
@@ -96,7 +114,8 @@ export default function AddPasswordScreen() {
 
   const handleSave = () => {
     if (!serviceName || !password) {
-      Alert.alert("Missing Info", "Please add a name and password.");
+      // 👇 Use State
+      showAlert("Missing Info", "Please add a name and password.", "error");
       return;
     }
 
@@ -119,7 +138,7 @@ export default function AddPasswordScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      {/* HEADER (Fixed Safe Area) */}
+      {/* HEADER */}
       <View style={[styles.header, { paddingTop: insets.top + 30 }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={{ color: theme.primary, fontSize: 17 }}>Cancel</Text>
@@ -198,7 +217,6 @@ export default function AddPasswordScreen() {
 
         {/* 2. CREDENTIALS FORM */}
         <View style={styles.formGroup}>
-          {/* Service Name */}
           <View
             style={[
               styles.inputRow,
@@ -215,7 +233,6 @@ export default function AddPasswordScreen() {
             />
           </View>
 
-          {/* Email / Username */}
           <View
             style={[
               styles.inputRow,
@@ -360,6 +377,16 @@ export default function AddPasswordScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* 👇 RENDER CUSTOM ALERT */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={closeAlert}
+        theme={theme}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -372,7 +399,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 16,
-    // paddingTop set dynamically via insets
   },
   headerTitle: { fontSize: 17, fontWeight: "600" },
   sectionTitle: { fontSize: 13, marginBottom: 8, fontWeight: "500" },
