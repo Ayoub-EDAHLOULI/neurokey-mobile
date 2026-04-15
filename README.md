@@ -36,4 +36,4 @@
    git clone [https://github.com/Ayoub-EDAHLOULI/neurokey.git](https://github.com/Ayoub-EDAHLOULI/neurokey.git)
    cd neurokey
 ---
-*Built with ❤️ by AYOUB EDAHLOULI for the AI Master's Portfolio.*
+*Built with ❤️ by AYOUB EDAHLOULI*
