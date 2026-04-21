@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useVault, VaultItem } from "../src/context/VaultContext";
 import { Colors } from "../src/theme";
 
-// SMART MERGE FUNCTION
+// A SMART MERGE FUNCTION TO COMBINE LOCAL AND REMOTE VAULTS
 const smartMerge = (localVault: VaultItem[], remoteVault: VaultItem[]) => {
   const mergedMap = new Map();
 
