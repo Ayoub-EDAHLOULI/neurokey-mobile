@@ -11,8 +11,32 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useVault } from "../src/context/VaultContext";
+import { useVault, VaultItem } from "../src/context/VaultContext";
 import { Colors } from "../src/theme";
+
+// SMART MERGE FUNCTION
+const smartMerge = (localVault: VaultItem[], remoteVault: VaultItem[]) => {
+  const mergedMap = new Map();
+
+  localVault.forEach((item) => mergedMap.set(item.id, item));
+
+  remoteVault.forEach((remoteItem) => {
+    const localItem = mergedMap.get(remoteItem.id);
+
+    if (!localItem) {
+      mergedMap.set(remoteItem.id, remoteItem);
+    } else {
+      const localTime = localItem.updated_at || localItem.created_at || 0;
+      const remoteTime = remoteItem.updated_at || remoteItem.created_at || 0;
+
+      if (remoteTime > localTime) {
+        mergedMap.set(remoteItem.id, remoteItem);
+      }
+    }
+  });
+
+  return Array.from(mergedMap.values()) as VaultItem[];
+};
 
 export default function SyncScreen() {
   const router = useRouter();
@@ -20,7 +44,8 @@ export default function SyncScreen() {
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
   const insets = useSafeAreaInsets();
 
-  const { items } = useVault();
+  // Grab both items AND setItems
+  const { items, setItems } = useVault();
 
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -29,7 +54,6 @@ export default function SyncScreen() {
   >("scanning");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // --- CAMERA PERMISSIONS ---
   if (!permission) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]} />
@@ -82,14 +106,12 @@ export default function SyncScreen() {
     );
   }
 
-  // --- SCAN & TRANSFER LOGIC ---
   const handleBarcodeScanned = async ({ data }: { data: string }) => {
     if (scanned) return;
     setScanned(true);
     setConnectionStatus("connecting");
 
     try {
-      // 1. Ping the Desktop Server to verify identity
       const response = await fetch(`${data}/ping`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -97,21 +119,26 @@ export default function SyncScreen() {
 
       const json = (await response.json()) as { status: string };
 
-      // 2. If the handshake is successful, initiate the transfer!
       if (json.status === "NeuroKey Desktop is ready!") {
-        // Blast the mobile vault data over the local Wi-Fi tunnel
         const syncResponse = await fetch(`${data}/sync`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ items: items }),
         });
 
-        const syncJson = (await syncResponse.json()) as { status: string };
+        // Expect desktop_items back from Rust!
+        const syncJson = (await syncResponse.json()) as {
+          status: string;
+          desktop_items?: VaultItem[];
+        };
 
-        if (syncJson.status === "success") {
+        if (syncJson.status === "success" && syncJson.desktop_items) {
+          // Run the Smart Merge!
+          const mergedVault = smartMerge(items, syncJson.desktop_items);
+          await setItems(mergedVault); // Save to local mobile storage
+
           setConnectionStatus("success");
 
-          // Close the scanner automatically after 2 seconds
           setTimeout(() => {
             router.back();
           }, 2000);
@@ -127,7 +154,6 @@ export default function SyncScreen() {
         "Transfer failed. Ensure both devices are on the exact same Wi-Fi network.",
       );
 
-      // Reset scanner after 3 seconds so the user can try again
       setTimeout(() => {
         setScanned(false);
         setConnectionStatus("scanning");
@@ -137,17 +163,13 @@ export default function SyncScreen() {
 
   return (
     <View style={styles.container}>
-      {/* FULL SCREEN CAMERA */}
       <CameraView
         style={StyleSheet.absoluteFillObject}
         facing="back"
         onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
         barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
       />
-
-      {/* OVERLAY UI */}
       <View style={[styles.overlay, { paddingTop: insets.top }]}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -158,13 +180,9 @@ export default function SyncScreen() {
           <Text style={styles.headerTitle}>Scan Desktop QR</Text>
           <View style={{ width: 40 }} />
         </View>
-
-        {/* Center Target Box */}
         <View style={styles.targetContainer}>
           <View style={styles.targetBox} />
         </View>
-
-        {/* Status Footer */}
         <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
           <View style={styles.statusCard}>
             {connectionStatus === "scanning" && (
@@ -175,14 +193,12 @@ export default function SyncScreen() {
                 </Text>
               </>
             )}
-
             {connectionStatus === "connecting" && (
               <>
                 <ActivityIndicator color="#007AFF" />
                 <Text style={styles.statusText}>Transferring Vault...</Text>
               </>
             )}
-
             {connectionStatus === "success" && (
               <>
                 <Ionicons name="checkmark-circle" size={28} color="#34C759" />
@@ -196,7 +212,6 @@ export default function SyncScreen() {
                 </Text>
               </>
             )}
-
             {connectionStatus === "error" && (
               <>
                 <Ionicons name="warning" size={24} color="#FF3B30" />
@@ -234,11 +249,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: { color: "#FFF", fontSize: 18, fontWeight: "bold" },
-  targetContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  targetContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   targetBox: {
     width: 250,
     height: 250,
@@ -251,10 +262,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 10,
   },
-  footer: {
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
+  footer: { alignItems: "center", paddingHorizontal: 20 },
   statusCard: {
     backgroundColor: "rgba(30,30,30,0.9)",
     borderRadius: 16,
@@ -264,9 +272,5 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: 15,
   },
-  statusText: {
-    color: "#FFF",
-    fontSize: 15,
-    flex: 1,
-  },
+  statusText: { color: "#FFF", fontSize: 15, flex: 1 },
 });
