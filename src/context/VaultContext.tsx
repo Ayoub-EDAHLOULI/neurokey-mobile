@@ -2,41 +2,40 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-// 👇 UPGRADE: Support multiple types
 export type VaultItemType = "password" | "card" | "note";
 
 export interface VaultItem {
   id: string;
-  type: VaultItemType; // 👈 New field
-  // Common fields
-  name: string; // Renamed from serviceName to be generic
-  // Password fields
+  type: VaultItemType;
+  name: string;
   email?: string;
   password?: string;
   url?: string;
-  // Card fields (New)
   cardNumber?: string;
   cardHolder?: string;
   expiry?: string;
   cvv?: string;
   cardType?: "visa" | "mastercard" | "amex";
-  // Common
   notes?: string;
   icon?: string;
   color?: string;
   created_at: number;
+  updated_at: number;
 }
 
 interface VaultContextType {
-  items: VaultItem[]; // Renamed from passwords
+  items: VaultItem[];
   isLoading: boolean;
-  addVaultItem: (item: Omit<VaultItem, "id" | "created_at">) => void;
+  addVaultItem: (
+    item: Omit<VaultItem, "id" | "created_at" | "updated_at">,
+  ) => void;
   deleteVaultItem: (id: string) => void;
   updateVaultItem: (id: string, updates: Partial<VaultItem>) => void;
+  setItems: (items: VaultItem[]) => Promise<void>;
 }
 
 const VaultContext = createContext<VaultContextType>({} as VaultContextType);
-const STORAGE_KEY = "@neurokey_vault_v2"; // Changed key to v2 to avoid conflicts
+const STORAGE_KEY = "@neurokey_vault_v2";
 
 export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   const [items, setItems] = useState<VaultItem[]>([]);
@@ -61,8 +60,16 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
   };
 
-  const addVaultItem = (newItem: Omit<VaultItem, "id" | "created_at">) => {
-    const entry = { id: uuidv4(), created_at: Date.now(), ...newItem };
+  const addVaultItem = (
+    newItem: Omit<VaultItem, "id" | "created_at" | "updated_at">,
+  ) => {
+    const now = Date.now();
+    const entry = {
+      id: uuidv4(),
+      created_at: now,
+      updated_at: now,
+      ...newItem,
+    };
     saveVault([entry as VaultItem, ...items]);
   };
 
@@ -71,7 +78,12 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const updateVaultItem = (id: string, updates: Partial<VaultItem>) => {
-    saveVault(items.map((i) => (i.id === id ? { ...i, ...updates } : i)));
+    // Inject the new updated_at timestamp on every edit
+    saveVault(
+      items.map((i) =>
+        i.id === id ? { ...i, ...updates, updated_at: Date.now() } : i,
+      ),
+    );
   };
 
   return (
@@ -82,6 +94,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
         addVaultItem,
         deleteVaultItem,
         updateVaultItem,
+        setItems: saveVault,
       }}
     >
       {children}
