@@ -148,8 +148,10 @@ export default function SyncScreen() {
           setConnectionStatus("success");
 
           setTimeout(() => {
-            router.back();
-          }, 3000);
+            if (router.canGoBack()) {
+              router.back();
+            }
+          }, 2000);
         } else {
           throw new Error("Desktop rejected the transfer.");
         }
