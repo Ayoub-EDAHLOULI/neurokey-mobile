@@ -82,13 +82,14 @@ export default function VaultScreen() {
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
   const insets = useSafeAreaInsets();
 
-  // 👇 Get Dynamic Data from Context
+  // Get Dynamic Data from Context
   const { items } = useVault();
 
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredData = items.filter(
     (item) =>
+      !item.isDeleted &&
       item.type === "password" &&
       (item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.email?.toLowerCase().includes(searchQuery.toLowerCase())),
