@@ -21,6 +21,7 @@ export interface VaultItem {
   color?: string;
   created_at: number;
   updated_at: number;
+  isDeleted?: boolean;
 }
 
 interface VaultContextType {
@@ -74,7 +75,12 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const deleteVaultItem = (id: string) => {
-    saveVault(items.filter((i) => i.id !== id));
+    // Instead of filtering it out, we turn it into a Tombstone!
+    saveVault(
+      items.map((i) =>
+        i.id === id ? { ...i, isDeleted: true, updated_at: Date.now() } : i,
+      ),
+    );
   };
 
   const updateVaultItem = (id: string, updates: Partial<VaultItem>) => {

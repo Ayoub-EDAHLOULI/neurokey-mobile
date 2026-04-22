@@ -129,7 +129,6 @@ export default function SyncScreen() {
         const syncResponse = await fetch(`${data}/sync`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          // Safely ensure we always send an array
           body: JSON.stringify({ items: Array.isArray(items) ? items : [] }),
         });
 
@@ -139,7 +138,6 @@ export default function SyncScreen() {
         };
 
         if (syncJson.status === "success") {
-          // Safely extract desktop items, defaulting to empty array if missing
           const safeDesktopItems = Array.isArray(syncJson.desktop_items)
             ? syncJson.desktop_items
             : [];
@@ -151,7 +149,7 @@ export default function SyncScreen() {
 
           setTimeout(() => {
             router.back();
-          }, 2000);
+          }, 3000);
         } else {
           throw new Error("Desktop rejected the transfer.");
         }
@@ -159,16 +157,12 @@ export default function SyncScreen() {
         throw new Error("Unrecognized device.");
       }
     } catch (error: any) {
-      console.error("SYNC CRASH: ", error); // Print to your terminal
       setConnectionStatus("error");
-
-      // Show the EXACT error on the phone screen instead of the generic one
       setErrorMessage(error.message || "Unknown transfer error occurred.");
-
       setTimeout(() => {
         setScanned(false);
         setConnectionStatus("scanning");
-      }, 3500); // Wait slightly longer so you can read the error!
+      }, 3500);
     }
   };
 
